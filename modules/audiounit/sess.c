@@ -9,7 +9,7 @@
 #include <rem.h>
 #include <baresip.h>
 #include "audiounit.h"
-
+#include "audiosession.h"
 
 struct audiosess {
 	struct list sessl;
@@ -27,7 +27,7 @@ struct audiosess_st {
 static struct audiosess *gas;
 
 
-#if TARGET_OS_IPHONE
+#if !COREAUDIO_MAC && USE_AUDIO_SESSION_API != 0
 static void propListener(void *inClientData, AudioSessionPropertyID inID,
 			 UInt32 inDataSize, const void *inData)
 {
@@ -66,10 +66,8 @@ static void sess_destructor(void *arg)
 static void destructor(void *arg)
 {
 	struct audiosess *as = arg;
-#if TARGET_OS_IPHONE
-	AudioSessionPropertyID id = kAudioSessionProperty_AudioRouteChange;
-
-	AudioSessionRemovePropertyListenerWithUserData(id, propListener, as);
+#if USE_AUDIO_SESSION_API != 0 && USE_AUDIO_ROUTE_CHANGE_PROP_LISTENER != 0
+	AudioSessionRemovePropertyListenerWithUserData(kAudioSessionProperty_AudioRouteChange, propListener, as);
 	AudioSessionSetActive(false);
 #endif
 
@@ -86,20 +84,17 @@ int audiosess_alloc(struct audiosess_st **stp,
 	struct audiosess *as = NULL;
 	int err = 0;
 	bool created = false;
-#if TARGET_OS_IPHONE
-	AudioSessionPropertyID id = kAudioSessionProperty_AudioRouteChange;
+#if USE_AUDIO_SESSION_API != 0 || SETUP_AV_AUDIO_SESSION != 0
 	UInt32 category;
 	OSStatus ret;
 #endif
 
+
 	if (!stp)
 		return EINVAL;
 
-#if TARGET_OS_IPHONE
-	/* Must be done for all modules */
-	category = kAudioSessionCategory_PlayAndRecord;
-	ret = AudioSessionSetProperty(kAudioSessionProperty_AudioCategory,
-				      sizeof(category), &category);
+#if SETUP_AV_AUDIO_SESSION != 0
+    ret = AVAudioSessionSetProperty();
 	if (ret) {
 		warning("audiounit: Audio Category: %d\n", ret);
 		return EINVAL;
@@ -113,20 +108,34 @@ int audiosess_alloc(struct audiosess_st **stp,
 	if (!as)
 		return ENOMEM;
 
-#if TARGET_OS_IPHONE
+#if USE_AUDIO_SESSION_API != 0
 	ret = AudioSessionSetActive(true);
 	if (ret) {
 		warning("audiounit: AudioSessionSetActive: %d\n", ret);
 		err = ENOTSUP;
 		goto out;
 	}
+#endif
 
-	ret = AudioSessionAddPropertyListener(id, propListener, as);
+        /* Listen for audio routing change notifications. */
+#if USE_AUDIO_ROUTE_CHANGE_PROP_LISTENER != 0
+	ret = AudioSessionAddPropertyListener(kAudioSessionProperty_AudioRouteChange, propListener, as);
 	if (ret) {
 		warning("audiounit: AudioSessionAddPropertyListener: %d\n",
 			ret);
 		err = EINVAL;
 		goto out;
+	}
+#endif
+
+#if USE_AUDIO_SESSION_API != 0
+	/* Must be done for all modules */
+	category = kAudioSessionCategory_PlayAndRecord;
+	ret = AudioSessionSetProperty(kAudioSessionProperty_AudioCategory,
+				      sizeof(category), &category);
+	if (ret) {
+		warning("audiounit: Audio Category: %d\n", ret);
+		return EINVAL;
 	}
 #endif
 

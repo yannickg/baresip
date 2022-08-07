@@ -10,7 +10,6 @@
 #include <baresip.h>
 #include "audiounit.h"
 
-
 /**
  * @defgroup audiounit audiounit
  *
@@ -134,7 +133,7 @@ uint32_t audiounit_aufmt_to_formatflags(enum aufmt fmt)
 }
 
 
-#if TARGET_OS_IPHONE
+#if USE_AUDIO_SESSION_API != 0
 static void interruptionListener(void *data, UInt32 inInterruptionState)
 {
 	(void)data;
@@ -157,9 +156,8 @@ static int module_init(void)
 	CFStringRef name = NULL;
 	int err;
 
-#if TARGET_OS_IPHONE
+#if USE_AUDIO_SESSION_API != 0
 	OSStatus ret;
-
 	ret = AudioSessionInitialize(NULL, NULL, interruptionListener, 0);
 	if (ret && ret != kAudioSessionAlreadyInitialized) {
 		warning("audiounit: AudioSessionInitialize: %d\n", ret);

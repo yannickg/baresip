@@ -1,6 +1,6 @@
 project(audiounit)
 
-set(SRCS audiounit.c player.c recorder.c sess.c)
+set(SRCS audiounit.c player.c recorder.c sess.c audiosession.m)
 
 if(STATIC)
   add_library(${PROJECT_NAME} STATIC ${SRCS})

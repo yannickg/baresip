@@ -1,0 +1,3 @@
+
+int AVAudioSessionSetProperty();
+int AVAudioSessionSetBufferDuration();

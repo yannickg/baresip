@@ -8,6 +8,29 @@
 #define kAudioObjectPropertyElementMain (kAudioObjectPropertyElementMaster)
 #endif
 
+#if TARGET_OS_IPHONE
+
+    /**
+     * As in iOS SDK 4 or later, audio route change property listener is
+     * no longer necessary. Just make surethat your application can receive
+     * remote control events by adding the code:
+     *     [[UIApplication sharedApplication] 
+     *      beginReceivingRemoteControlEvents];
+     * Otherwise audio route change (such as headset plug/unplug) will not be
+     * processed while your application is in the background mode.
+     */
+    #define USE_AUDIO_ROUTE_CHANGE_PROP_LISTENER 0
+    /* Starting iOS SDK 7, Audio Session API is deprecated. */
+    #define USE_AUDIO_SESSION_API 0
+
+    /* For better integration with CallKit features (available starting
+     * in iOS 10), let the application setup and manage its own
+     * audio session.
+     */
+    #define SETUP_AV_AUDIO_SESSION  1
+
+#endif
+
 AudioComponent audiounit_comp_io;
 AudioComponent audiounit_comp_conv;
 

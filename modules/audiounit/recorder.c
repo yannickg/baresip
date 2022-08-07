@@ -11,6 +11,7 @@
 #include <rem.h>
 #include <baresip.h>
 #include "audiounit.h"
+#include "audiosession.h"
 
 
 struct ausrc_st {
@@ -386,6 +387,12 @@ int audiounit_recorder_alloc(struct ausrc_st **stp, const struct ausrc *as,
 	ret = AudioOutputUnitStart(st->au_in);
 	if (ret)
 		goto out;
+
+#if SETUP_AV_AUDIO_SESSION != 0
+    ret = AVAudioSessionSetBufferDuration();
+	if (ret)
+		goto out;
+#endif
 
  out:
 	if (ret) {
