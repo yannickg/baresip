@@ -189,11 +189,11 @@ int audiounit_recorder_alloc(struct ausrc_st **stp, const struct ausrc *as,
 	AudioStreamBasicDescription fmt, fmt_app;
 	const AudioUnitElement inputBus = 1;
 	const AudioUnitElement defaultBus = 0;
+	const AudioUnitElement outputBus = 0;
 	AURenderCallbackStruct cb_in, cb_conv;
 	struct ausrc_st *st;
 	const UInt32 enable = 1;
 #if ! TARGET_OS_IPHONE
-	const AudioUnitElement outputBus = 0;
 	const UInt32 disable = 0;
 	UInt32 ausize = sizeof(AudioDeviceID);
 	AudioDeviceID inputDevice;
@@ -320,13 +320,12 @@ int audiounit_recorder_alloc(struct ausrc_st **stp, const struct ausrc *as,
 	ret = AudioUnitSetProperty(st->au_in, kAudioUnitProperty_StreamFormat,
 				   kAudioUnitScope_Output, inputBus,
 				   &fmt, sizeof(fmt));
-	if (ret)
+	if (ret) {
+		warning("audiounit: record: Failed setting stream format of input device (%d)\n",
+			ret);
 		goto out;
 
-	/* NOTE: done after desc */
-	ret = AudioUnitInitialize(st->au_in);
-	if (ret)
-		goto out;
+    }
 
 	cb_in.inputProc = input_callback;
 	cb_in.inputProcRefCon = st;
@@ -334,6 +333,21 @@ int audiounit_recorder_alloc(struct ausrc_st **stp, const struct ausrc *as,
 				   kAudioOutputUnitProperty_SetInputCallback,
 				   kAudioUnitScope_Global, inputBus,
 				   &cb_in, sizeof(cb_in));
+	if (ret)
+		goto out;
+
+    UInt32 flag = 0;
+    AudioUnitSetProperty(st->au_in, kAudioUnitProperty_ShouldAllocateBuffer,
+                            kAudioUnitScope_Output, inputBus, &flag,
+                            sizeof(flag));
+    // Disable Output on record
+    UInt32 enable_output = 0;
+    AudioUnitSetProperty(st->au_in, kAudioOutputUnitProperty_EnableIO,
+                            kAudioUnitScope_Output, outputBus, &enable_output,
+                            sizeof(enable_output));
+
+	/* NOTE: done after desc */
+	ret = AudioUnitInitialize(st->au_in);
 	if (ret)
 		goto out;
 
@@ -365,8 +379,12 @@ int audiounit_recorder_alloc(struct ausrc_st **stp, const struct ausrc *as,
 				   defaultBus,
 				   &fmt_app,
 				   sizeof(fmt_app));
-	if (ret)
+	if (ret) {
+		warning("audiounit: record: Failed setting stream format of conversion device (%d)\n",
+			ret);
 		goto out;
+
+    }
 
 	cb_conv.inputProc = convert_callback;
 	cb_conv.inputProcRefCon = st;
@@ -387,12 +405,6 @@ int audiounit_recorder_alloc(struct ausrc_st **stp, const struct ausrc *as,
 	ret = AudioOutputUnitStart(st->au_in);
 	if (ret)
 		goto out;
-
-#if SETUP_AV_AUDIO_SESSION != 0
-    ret = AVAudioSessionSetBufferDuration();
-	if (ret)
-		goto out;
-#endif
 
  out:
 	if (ret) {

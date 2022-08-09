@@ -1,3 +1,2 @@
 
-int AVAudioSessionSetProperty();
-int AVAudioSessionSetBufferDuration();
+int AVAudioSessionInitialize(void);

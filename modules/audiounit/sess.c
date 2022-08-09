@@ -9,7 +9,6 @@
 #include <rem.h>
 #include <baresip.h>
 #include "audiounit.h"
-#include "audiosession.h"
 
 struct audiosess {
 	struct list sessl;
@@ -84,22 +83,13 @@ int audiosess_alloc(struct audiosess_st **stp,
 	struct audiosess *as = NULL;
 	int err = 0;
 	bool created = false;
-#if USE_AUDIO_SESSION_API != 0 || SETUP_AV_AUDIO_SESSION != 0
+#if USE_AUDIO_SESSION_API != 0
 	UInt32 category;
 	OSStatus ret;
 #endif
 
-
 	if (!stp)
 		return EINVAL;
-
-#if SETUP_AV_AUDIO_SESSION != 0
-    ret = AVAudioSessionSetProperty();
-	if (ret) {
-		warning("audiounit: Audio Category: %d\n", ret);
-		return EINVAL;
-	}
-#endif
 
 	if (gas)
 		goto makesess;

@@ -34,7 +34,6 @@
 AudioComponent audiounit_comp_io;
 AudioComponent audiounit_comp_conv;
 
-
 struct audiosess;
 struct audiosess_st;
 struct conv_buf;

@@ -103,6 +103,7 @@ int audiounit_player_alloc(struct auplay_st **stp, const struct auplay *ap,
 			   auplay_write_h *wh, void *arg)
 {
 	AudioStreamBasicDescription fmt;
+	const AudioUnitElement inputBus = 1;
 	const AudioUnitElement outputBus = 0;
 	AURenderCallbackStruct cb;
 	struct auplay_st *st;
@@ -175,6 +176,14 @@ int audiounit_player_alloc(struct auplay_st **stp, const struct auplay *ap,
 	ret = AudioUnitSetProperty(st->au, kAudioUnitProperty_StreamFormat,
 				   kAudioUnitScope_Input, outputBus,
 				   &fmt, sizeof(fmt));
+	if (ret)
+		goto out;
+
+    // Disable Input on playout
+    UInt32 enable_input = 0;
+    AudioUnitSetProperty(st->au, kAudioOutputUnitProperty_EnableIO,
+                            kAudioUnitScope_Input, inputBus, &enable_input,
+                            sizeof(enable_input));
 	if (ret)
 		goto out;
 

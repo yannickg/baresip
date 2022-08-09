@@ -9,6 +9,7 @@
 #include <rem.h>
 #include <baresip.h>
 #include "audiounit.h"
+#include "audiosession.h"
 
 /**
  * @defgroup audiounit audiounit
@@ -154,14 +155,24 @@ static int module_init(void)
 {
 	AudioComponentDescription desc;
 	CFStringRef name = NULL;
+#if USE_AUDIO_SESSION_API != 0 || SETUP_AV_AUDIO_SESSION != 0
+	OSStatus ret;
+#endif
 	int err;
 
 #if USE_AUDIO_SESSION_API != 0
-	OSStatus ret;
 	ret = AudioSessionInitialize(NULL, NULL, interruptionListener, 0);
 	if (ret && ret != kAudioSessionAlreadyInitialized) {
 		warning("audiounit: AudioSessionInitialize: %d\n", ret);
 		return ENODEV;
+	}
+#endif
+
+#if SETUP_AV_AUDIO_SESSION != 0
+    ret = AVAudioSessionInitialize();
+	if (ret) {
+		warning("audiounit: Audio Category: %d\n", ret);
+		return EINVAL;
 	}
 #endif
 
